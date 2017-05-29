@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import eu.entropy.okalfred.eu.entropy.okalfred.apiai.model.ApiAiResponse;
-import okhttp3.ResponseBody;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -36,21 +35,23 @@ public class MainActivity extends Activity {
         String s = t.getStringExtra(Intent.EXTRA_TEXT);
         System.out.println("===" + s);
 
-        Retrofit TVretrofit = new Retrofit.Builder()
+        Retrofit tvRetrofit = new Retrofit.Builder()
                 .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
                 .baseUrl("http://192.168.1.27:5000/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        TvService tvService = TVretrofit.create(TvService.class);
+        TvService tvService = tvRetrofit.create(TvService.class);
 
         Observable<ApiAiResponse> call = service.query("Bearer 30bf818339364a249da4d64c5160ab8f", s);
         call.subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
-                .flatMap(response -> {
-                    System.out.println("Action: " + response.getAction());
-                    return tvService.request(response.getAction());
-                })
-                .subscribe(response -> System.out.println(response));
+                .subscribe(apiAiResponse -> {
+                    System.out.println("Action: " + apiAiResponse.getAction());
+                    tvService.request(apiAiResponse.getAction()).subscribeOn(Schedulers.newThread())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe();
+                });
+        finish();
     }
 
     @Override
